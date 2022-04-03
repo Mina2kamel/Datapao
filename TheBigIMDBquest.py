@@ -14,7 +14,6 @@ class WebScraping():
         self.Rating =[]
         self.Number_of_ratings = []
         self.Oscars=[]
-        self.adjusted_rating=[]
 
 
     def Scraper(self,url):
@@ -22,13 +21,15 @@ class WebScraping():
         Scrape web data for TOP 20 IMDB movies
         Arguments:
             url : link of the IMDB website
+        return :
+            Pandas df object
         '''
 
         headers = {'Accept-Language': 'en-US,en;q=0.8'}
         r = requests.get(url,headers=headers)
         soup = BeautifulSoup(r.content, "html.parser")
         scraped_movies = soup.find("tbody", {"class":"lister-list"}).find_all("tr")
-        for movie in scraped_movies[:20]:
+        for movie in scraped_movies[:5]:
             title=  movie.find("td",class_="titleColumn").a.text
             rating = movie.find("td",{"class":"ratingColumn"}).text
             RatNum= movie.find('span',attrs = {'name':'nv'})['data-value']
@@ -43,10 +44,13 @@ class WebScraping():
                     self.Oscars.append(int(oscar[4]))
                 else:
                     self.Oscars.append(0)
+        df = pd.DataFrame(list(zip(self.TitleName,self.Rating,self.Number_of_ratings,self.Oscars)),
+                               columns=['Title','Rating','Number of ratings','Number of Oscars'])
 
-        return self.TitleName,self.Rating,self.Number_of_ratings,self.Oscars
+        return df
 
-    def RatingAdjustment(self):
+
+    def RatingAdjustment(self,Number_of_ratings,Oscars):
         '''
         Modify Movie rating according to the number of ratings
         and number of oscars
@@ -54,14 +58,15 @@ class WebScraping():
         '''
 
         Num_rating=[]
-        benchmark = max(self.Number_of_ratings)
-        for index,num in enumerate(self.Number_of_ratings):
+        adjusted_rating=[]
+        benchmark = max(Number_of_ratings)
+        for index,num in enumerate(Number_of_ratings):
             deviation = math.floor((benchmark-num)/100000.0)
             penalty = float(format(deviation *0.1, ".1f"))
             x = self.Rating[index]-penalty
             Num_rating.append(x)
 
-        for index , num in enumerate(self.Oscars):
+        for index , num in enumerate(Oscars):
             if num==0:
                 y = Num_rating[index]
             elif num in range(1,3):
@@ -72,20 +77,21 @@ class WebScraping():
                 y = Num_rating[index]+1.0
             else:
                 y = Num_rating[index]+1.5
-            self.adjusted_rating.append(float(format(y, ".1f")))
+            adjusted_rating.append(float(format(y, ".1f")))
 
-        return self.adjusted_rating
+        return adjusted_rating
 
 
 if __name__ == "__main__":
 
     Data = WebScraping()
-    TitleName,Rating,Number_of_ratings,Oscars = Data.Scraper(url = "https://www.imdb.com/chart/top/")
-    adjusted_rating= Data.RatingAdjustment()
-    df = pd.DataFrame(list(zip(TitleName,Rating,adjusted_rating,Number_of_ratings,Oscars)),
-                               columns=['Title','Rating','Adjusted_rating','Number of ratings','Number of Oscars'])
-    sorted_df = df.sort_values(by=['Adjusted_rating'],ascending=False)
-    sorted_df.to_csv('Sorted_ratings.csv', index=False, encoding='utf-8')
+    df = Data.Scraper(url = "https://www.imdb.com/chart/top/")
+    adjusted_rating= Data.RatingAdjustment(Data.Number_of_ratings,Data.Oscars)
+    print(adjusted_rating)
+    # df = pd.DataFrame(list(zip(Data.TitleName,Data.Rating,adjusted_rating,Data.Number_of_ratings,Data.Oscars)),
+    #                           columns=['Title','Rating','Adjusted_rating','Number of ratings','Number of Oscars'])
+    # sorted_df = df.sort_values(by=['Adjusted_rating'],ascending=False)
+    # sorted_df.to_csv('Sorted_ratings.csv', index=False, encoding='utf-8')
 
 
 
