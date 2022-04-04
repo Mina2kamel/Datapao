@@ -2,7 +2,6 @@ import requests
 from bs4 import BeautifulSoup
 import pandas as pd
 import math
-from urllib.request import urlopen
 
 class WebScraping():
 
@@ -29,7 +28,7 @@ class WebScraping():
         r = requests.get(url,headers=headers)
         soup = BeautifulSoup(r.content, "html.parser")
         scraped_movies = soup.find("tbody", {"class":"lister-list"}).find_all("tr")
-        for movie in scraped_movies[:5]:
+        for movie in scraped_movies[:20]:
             title=  movie.find("td",class_="titleColumn").a.text
             rating = movie.find("td",{"class":"ratingColumn"}).text
             RatNum= movie.find('span',attrs = {'name':'nv'})['data-value']
@@ -38,7 +37,7 @@ class WebScraping():
             self.Number_of_ratings.append(int(RatNum))
             for value in movie.a.attrs.values():
                 url = "https://www.imdb.com" + value
-                soup = BeautifulSoup(urlopen(url),"html.parser")
+                soup = BeautifulSoup(requests.get(url).content,"html.parser")
                 oscar = soup.find("ul",class_ ="ipc-metadata-list ipc-metadata-list--dividers-none sc-fcdc3619-2 kTHpcg ipc-metadata-list--base").a.text
                 if oscar[0:3]=="Won":
                     self.Oscars.append(int(oscar[4]))
@@ -50,7 +49,7 @@ class WebScraping():
         return df
 
 
-    def RatingAdjustment(self,Number_of_ratings,Oscars):
+    def RatingAdjustment(self,Rating,Number_of_ratings,Oscars):
         '''
         Modify Movie rating according to the number of ratings
         and number of oscars
@@ -63,7 +62,7 @@ class WebScraping():
         for index,num in enumerate(Number_of_ratings):
             deviation = math.floor((benchmark-num)/100000.0)
             penalty = float(format(deviation *0.1, ".1f"))
-            x = self.Rating[index]-penalty
+            x = Rating[index]-penalty
             Num_rating.append(x)
 
         for index , num in enumerate(Oscars):
@@ -86,12 +85,11 @@ if __name__ == "__main__":
 
     Data = WebScraping()
     df = Data.Scraper(url = "https://www.imdb.com/chart/top/")
-    adjusted_rating= Data.RatingAdjustment(Data.Number_of_ratings,Data.Oscars)
-    print(adjusted_rating)
-    # df = pd.DataFrame(list(zip(Data.TitleName,Data.Rating,adjusted_rating,Data.Number_of_ratings,Data.Oscars)),
-    #                           columns=['Title','Rating','Adjusted_rating','Number of ratings','Number of Oscars'])
-    # sorted_df = df.sort_values(by=['Adjusted_rating'],ascending=False)
-    # sorted_df.to_csv('Sorted_ratings.csv', index=False, encoding='utf-8')
+    adjusted_rating= Data.RatingAdjustment(Data.Rating,Data.Number_of_ratings,Data.Oscars)
+    df = pd.DataFrame(list(zip(Data.TitleName,Data.Rating,adjusted_rating,Data.Number_of_ratings,Data.Oscars)),
+                              columns=['Title','Rating','Adjusted_rating','Number of ratings','Number of Oscars'])
+    sorted_df = df.sort_values(by=['Adjusted_rating'],ascending=False)
+    sorted_df.to_csv('Sorted_ratings.csv', index=False, encoding='utf-8')
 
 
 
