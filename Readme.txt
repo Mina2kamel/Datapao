@@ -7,7 +7,7 @@ Datapao\Scripts\activate
 pip install -r requirements.txt
 
 # to run the main code
-python IMDB.py
+python imbd.py
 
 # to run the test code
-python test_IMDB.py
+python test_imdb.py
