@@ -1,4 +1,4 @@
-from TheBigIMDBquest import WebScraping
+from IMDB import WebScraping
 from bs4 import BeautifulSoup
 import requests
 import unittest
