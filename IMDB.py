@@ -10,6 +10,7 @@ class WebScraping():
     '''
        Web scraping class for IMDB movies
     '''
+    
     def __init__(self):
         '''
             Initialize the Class attributes
